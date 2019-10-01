@@ -1,3 +1,4 @@
+#%%
 from __future__ import print_function
 from tslearn.clustering import TimeSeriesKMeans
 from tslearn.datasets import CachedDatasets
@@ -30,17 +31,18 @@ from matplotlib.ticker import FuncFormatter
 from tslearn.generators import random_walks
 from tslearn.metrics import cdist_dtw
 import os.path
-chemin='./ProjetPythonPapier/Resultats/MatTcEch.mat'
-chemin1='./ProjetPythonPapier/Resultats/MatTeEch.mat'
-chemin2='./ProjetPythonPapier/Resultats/MatTrEch.mat'
+
+chemin='../ProjetPythonPapierGit/resultats/MatTcEch.mat'
+chemin1='../ProjetPythonPapierGit/resultats/MatTeEch.mat'
+chemin2='../ProjetPythonPapierGit/resultats/MatTrEch.mat'
 #%%Read Data
-trunk,label=readData(Chemin2)
-head=readData(Chemin1)
-elbow=readData(Chemin)
-#%%Isolation Forest to delete outliers for Coude Before normalisation
-elbow,label=isolationForest(elbow)
-trunk=isolationForest(trunk)
-head=isolationForest(head)
+trunk,label=readData(chemin2)
+head,label=readData(chemin1)
+elbow,label=readData(chemin)
+#%%Isolation Forest to delete outliers for signals Before normalisation: facultatif
+#elbow,label=isolationForest(elbow,label)
+#trunk,label=isolationForest(trunk,label)
+#head,label=isolationForest(head,label)
 #%%Normalisation soustraction mean Ligne par ligne normalization1
 XElbow = normaData1(elbow)
 XTrunk = normaData1(trunk)
@@ -49,18 +51,18 @@ XHead = normaData1(head)
 wcssElbow,sElbow=Silhouette(XElbow,20)
 wcssHead,sHead=Silhouette(XHead,20)
 wcssTrunk,sTrunk=Silhouette(XTrunk,20)
-#%%plot figure "Silhouette" Trunk
-maxima=FindMaxima(s1)
+#%%plot figure "Silhouette" Trunk Example
+maxima=FindMaxima(sTrunk)
 del maxima[0]
-npx=np.array(s1)
-max=argrelextrema(s1, np.greater)
+npx=np.array(sTrunk)
+max=argrelextrema(sTrunk, np.greater)
 max=list(itertools.chain.from_iterable(max))
 numberOfClusters=range(2,20)
 plt.figure(figsize=(8, 8))
 plt.title("Silhouette Analysis: Trunk")
 plt.xticks(np.arange(2, 20, 1.0))
 plt.plot(numberOfClusters,s1)
-plt.plot(5, np.max(s1),'r*')      
+plt.plot(5, np.max(sTrunk),'r*')      
 plt.xlabel(r'Number of clusters *k*')
 plt.ylabel('Silhouette Index')
 
@@ -69,7 +71,7 @@ plt.ylabel('Silhouette Index')
 wcssTr=Elbow(XTrunk,20)
 wcssEl=Elbow(XElbow,20)
 wcssHe=Elbow(XHead,20)
- #%%plot figure "Elbow" Trunk
+ #%%plot figure "Elbow" Trunk Example
 plt.figure(figsize=(8, 8))
 plt.title("Analyse Elbow for Trunk")
 plt.xticks(np.arange(2, 19, 1.0))
@@ -78,24 +80,24 @@ plt.xlabel(r'Number of clusters *k*')
 plt.ylabel('Sum of squared distance');
 
 #%% clustering data DTW
-y_predElbow = dtwData(XCoude,5)
-y_predTrunk = sdtwData(XTrunk,5)
-y_predHead = sdtwData(XHead,4)
+y_predElbow,sdtw_km_el = dtwData(XElbow,5)
+y_predTrunk,sdtw_km_tr = sdtwData(XTrunk,5)
+y_predHead,sdtw_km_he = sdtwData(XHead,4)
 #%% Analyse des résultats post clustering
 TEl,effEl=doAnalyse(y_predElbow,label,5,22)
 THe,effHe=doAnalyse(y_predHead ,label,4,22)
 TTr,effTr=doAnalyse(y_predTrunk,label,5,22)
 
-#%% Distribution clusters riders vs nonriders 
-Riders=T[[1,2,6,12,13,16,17,18,19,20],:]
-LabelRiders=eff[[1,2,6,12,13,16,17,18,19,20]]
-NRiders=T[[0,3,4,5,7,8,9,10,11,14,15],:]
-NLabelRiders=eff[[0,3,4,5,7,8,9,10,11,14,15]]
+#%% Distribution clusters riders vs nonriders for elbow: do the same for trunk and head
+Riders=TEl[[1,2,6,12,13,16,17,18,19,20],:]
+LabelRiders=effEl[[1,2,6,12,13,16,17,18,19,20]]
+NRiders=TEl[[0,3,4,5,7,8,9,10,11,14,15],:]
+NLabelRiders=effEl[[0,3,4,5,7,8,9,10,11,14,15]]
 
-#%% 
-PostRes=T[17:,:]
-LabelPre=eff[0:17]
-LabelPost=eff[17:]
+#%% Cycle distribution between Riders and Non Riders (matrix C)
+PostRes=TEl[17:,:]
+LabelPre=effEl[0:17]
+LabelPost=effEl[17:]
 Rc=sumColumn(Riders)
 Moy=(Rc/sum(LabelRiders)) *100
 Rp=sumColumn(NRiders)
@@ -121,107 +123,56 @@ for p in ulabel:
     (inds,) = np.nonzero(label[:,0]==p)
     plt.figure()
     x=np.arange(len(inds))
-    y=y_predHead[inds]+1
+    y=y_predElbow[inds]+1
     [plt.axvline(x, linewidth=1, color='g') for x in my_list[n]]
     n += 1
     plt.plot(x,y,'g+')
-    my_path = os.path.abspath( './ProjetPythonPapier/Figures')
+    my_path = os.path.abspath( './ProjetPythonPapier/figures')
     my_file = 'HeadDTW{}.png'
     plt.savefig(os.path.join(my_path, my_file.format(p))) 
 
- #%% Number of cycles per cluster
-      T1=FindClusFeq(1,0)
-      T3=FindClusFeq(4,1)
-      T4=FindClusFeq(5,2)
-      T5=FindClusFeq(6,3)
-      T6=FindClusFeq(7,4)
-      T7=FindClusFeq(8,5)
-      T8=FindClusFeq(9,6)
-      T9=FindClusFeq(11,7)
-      T10=FindClusFeq(12,8)
-      T11=FindClusFeq(13,9)
-      T12=FindClusFeq(14,10)
-      T13=FindClusFeq(15,11)
-      T14=FindClusFeq(16,12)
-      T15=FindClusFeq(17,13)
-      T16=FindClusFeq(18,14)
-      T17=FindClusFeq(19,15)
-      T18=FindClusFeq(20,16)
-      T19=FindClusFeq(21,17)
-      T20=FindClusFeq(22,18)
-      T21=FindClusFeq(24,19)
-      T22=FindClusFeq(25,20)
-      Tfinal=np.concatenate((T1, T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22), axis=1)
+ #%% Number of cycles per cluster for elbow riders and nonRiders
+ ulabel=np.unique(labelAll[:,0])
+ ulabel1=range(1,22)
+ zipped=zip(ulabel,ulabel1)
+ for i,j in zipped:
+    # FindClusFeq(i,j,y_predElbow,label,my_list,my_list1)
+    #FindClusFeq(i,j,y_kmeans,label,my_list,my_list1)
+     T=FindClusFeq(i,j,y_predElbow,labelAll,my_list,my_list1)
+ 
+ myarray = np.asarray(T1)   
+ T1,T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22=np.split(myarray,21)
+ Tfinal=np.concatenate((T1, T3,T4,T5,T6,T7,T8,T9,T10,T11,T12,T13,T14,T15,T16,T17,T18,T19,T20,T21,T22), axis=1)   
+    
 #%% Number of cycles per cluster for riders
-      Riders=T[[1,2,6,12,13,16,17,18,19,20],:]    
-      T3=FindClusFeq(4,1)
-      T4=FindClusFeq(5,2)
-      T8=FindClusFeq(9,6)
-      T14=FindClusFeq(16,12)
-      T15=FindClusFeq(17,13)
-      T18=FindClusFeq(20,16)
-      T19=FindClusFeq(21,17)
-      T20=FindClusFeq(22,18)
-      T21=FindClusFeq(24,19)
-      T22=FindClusFeq(25,20)
-      TfinalRiders=np.concatenate((T3,T4,T8,T14,T15,T18,T19,T20,T21,T22), axis=1)     
-      Rc=sumLig(TfinalRiders)
-      Moy=(Rc/sum(LabelRiders)) *100
+      
+  ulabelRiders=[4,5,9,16,17,20,21,22,24,25]
+  ulabel1Riders=[1,2,6,12,13,16,17,18,19,20]
+ 
+  Riders=T[[1,2,6,12,13,16,17,18,19,20],:]  
+  TfinalRiders=np.concatenate((T3,T4,T8,T14,T15,T18,T19,T20,T21,T22), axis=1)     
+  Rc=sumLig(TfinalRiders)
+  Moy=(Rc/sum(LabelRiders)) *100
+
    #%%  Number of cycles per cluster for  NonRiders
-      T1=FindClusFeq(1,0)
-      T5=FindClusFeq(6,3)
-      T6=FindClusFeq(7,4)
-      T7=FindClusFeq(8,5)
-      T9=FindClusFeq(10,7)
-      T10=FindClusFeq(12,8)
-      T11=FindClusFeq(13,9)
-      T12=FindClusFeq(14,10)
-      T13=FindClusFeq(15,11)
-      T16=FindClusFeq(18,14)
-      T17=FindClusFeq(19,15)
+
       TfinalNonRiders=np.concatenate((T1,T5,T6,T7,T9,T10,T11,T12,T13,T15,T16,T17), axis=1)   
       Rc=sumLig(TfinalNonRiders)
       Moy=(Rc/sum(NLabelRiders)) *100
-
-#%%
-Rc=sumLig(Tfinal)
-Moy=(Rc/sum(effEl)) *100
-Rp=sumColumn(PostRes)
-Moy1=(Rp/sum(LabelPost)) *100
-C=[Moy,Moy1]
-C=np.mat(C)
-#%% 
+#%% Trunk
 N_CLUSTERS = 5
-clusters = [XTronc[y_predTrunk==i] for i in range(N_CLUSTERS)]
+clustersTr = [XTunk[y_predTrunk==i] for i in range(N_CLUSTERS)]
 #%%Elbow
 N_CLUSTERS = 5
-clusters = [XCoude[y_predElbow==i] for i in range(N_CLUSTERS)]
+clustersEl = [XElbow[y_predElbow==i] for i in range(N_CLUSTERS)]
 #%%Elbow Head
 N_CLUSTERS = 4
-clusters = [XCoude[y_predElbow==i] for i in range(N_CLUSTERS)]
-#%% figure Intervalle de confiance PH par cluster
-for i, c in enumerate(clusters):
-    clust=clusters[i]
-    clustPh=clust
-    MoyCol=sdtw1.cluster_centers_[i].ravel()
-    stdCol=np.std(clustPh, 0)
-    MoyP=MoyCol-stdCol
-    MoyM=MoyCol+stdCol
-    plt.figure()
-    plt.plot(MoyP,'--', label="Mean - std")
-    plt.plot(MoyM,'--', label="Mean + std")
-    #plt.plot(MoyCol, label="Mean")
-    plt.plot(MoyCol, "r-", label="Mean")
-    plt.legend()
-    plt.xlabel('Cycle Length')
-    plt.ylabel('Confidence Interval')
-    s1='Cluster '
-    s1+=str(i+1)
-    s=' : NUmber of cycle is= '
-    s +=str(h)
-    my_file = 'IntervalleDTWEl{}.png'
-    outfile = os.path.abspath( './ProjetPythonPapier/Figures')
-    plt.savefig(os.path.join(outfile, my_file.format(i))) 
+clustersHe = [XHead[y_predHead==i] for i in range(N_CLUSTERS)]
+    #%% 
+    plotPH(XElbow,y_predElbow,5,sdtw_km_el)
+    plotPH(XHead,y_predHead,4,sdtw_km_he)
+    plotPH(XTrunk,y_predTrunk,5,sdtw_km_tr)
+    
 #%% save model
 saveModel(y_predElbow,'modelELBOW.sav')
 saveModel(y_predTrunk,'modelTrunk.sav')

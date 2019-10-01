@@ -1,36 +1,34 @@
-#%%A
 from __future__ import print_function
 from tslearn.clustering import TimeSeriesKMeans
-from tslearn.datasets import CachedDatasets
-from tslearn.preprocessing import TimeSeriesScalerMeanVariance, TimeSeriesResampler
+#from tslearn.datasets import CachedDatasets
+#from tslearn.preprocessing import TimeSeriesScalerMeanVariance, TimeSeriesResampler
 import matplotlib.pyplot as plt
 import pandas as pd
-import scipy.io
+#import scipy.io
 from scipy import io
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import scale
-import seaborn as sns
+#from sklearn.decomposition import PCA
+#from sklearn.preprocessing import scale
+#import seaborn as sns
 from sklearn.preprocessing import StandardScaler
-from sklearn.datasets import make_blobs
+#from sklearn.datasets import make_blobs
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_samples, silhouette_score
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
+#from sklearn.metrics import silhouette_samples, silhouette_score
+#import matplotlib.pyplot as plt
+#import matplotlib.cm as cm
 import numpy as np
-import pandas as pd
-from scipy.interpolate import interp1d
-from scipy.optimize import minimize
-from sklearn.exceptions import ConvergenceWarning
-import warnings
-from tslearn.barycenters import euclidean_barycenter, dtw_barycenter_averaging, softdtw_barycenter
-from tslearn.datasets import CachedDatasets
-from tslearn.utils import to_time_series_dataset, check_equal_size, to_time_series
-from tslearn.preprocessing import TimeSeriesResampler
-from tslearn.metrics import dtw_path, SquaredEuclidean, SoftDTW
+#import pandas as pd
+#from scipy.interpolate import interp1d
+#from scipy.optimize import minimize
+#from sklearn.exceptions import ConvergenceWarning
+#from tslearn.barycenters import euclidean_barycenter, dtw_barycenter_averaging, softdtw_barycenter
+#from tslearn.datasets import CachedDatasets
+#from tslearn.utils import to_time_series_dataset, check_equal_size, to_time_series
+#from tslearn.preprocessing import TimeSeriesResampler
+#from tslearn.metrics import dtw_path, SquaredEuclidean, SoftDTW
 from sklearn.ensemble import IsolationForest
-from matplotlib.ticker import FuncFormatter
-from tslearn.generators import random_walks
-from tslearn.metrics import cdist_dtw
+#from matplotlib.ticker import FuncFormatter
+#from tslearn.generators import random_walks
+#from tslearn.metrics import cdist_dtw
 import os.path
 #%%Read Data
 def readData(chemin):
@@ -42,14 +40,16 @@ def readData(chemin):
     label = soildata ['Resultat'][:,-2:]
     return(data,label)
 #%%Isolation Forest to delete outliers for Tronc Before normalisation
-def isolationForest(data):
-    ami_preprocessed_train=data
+def isolationForest(data,label):
+    
     index = ['Row'+str(i) for i in range(1, len(data)+1)]
+    index1 = ['Row'+str(ij) for ij in range(1, len(label)+1)]
     data = pd.DataFrame(data, index=index)
+    label = pd.DataFrame(label, index=index1)
     iforest = IsolationForest(n_estimators=300, contamination=0.05)
     iforest = iforest.fit(data)
-    pred_isoF = iforest.predict(data)
-    isoF_outliers = Dr[iforest.predict(data) == -1]
+   # pred_isoF = iforest.predict(data)
+    isoF_outliers = data[iforest.predict(data) == -1]
     data= data.drop(isoF_outliers.index.values.tolist())
     label=label.drop(isoF_outliers.index.values.tolist())
     return(data.values,label.values)
@@ -81,8 +81,6 @@ def Silhouette(X,n_clusters):
     #  r=silhouette_samples_memory_saving(X, labels, metric='euclidean')
      s=np.append(s,r)
     return(wcss,s)
-    
-    
     #%%Analyse Elbow
 def Elbow(X,n_clusters):
   wcss = []
@@ -92,7 +90,7 @@ def Elbow(X,n_clusters):
     wcss.append(kmeans.inertia_)
   return(wcss) 
     #%%
- def FindMaxima(numbers):
+def FindMaxima(numbers):
   maxima = []
   length = len(numbers)
   if length >= 2:
@@ -112,20 +110,20 @@ def dtwData(X,n_clusters):
  sdtw_km = TimeSeriesKMeans(n_clusters, metric="softdtw", metric_params={"gamma_sdtw": .01},
                            verbose=True)
  y_pred = sdtw_km.fit_predict(X)
- return y_pred
+ return (y_pred,sdtw_km)
 #%%
 #analyse kmeans: matrice de nombre de cycle par cluster pour chaque patient
-def doAnalyse(y_kmeans,label,nb_clust,nb_parti):
+def doAnalyse(model,label,nb_clust,nb_parti):
  (ulabel, eff) = np.unique(label[:,0], return_counts=True)
  j=[];jj=[]
  for p in ulabel:  
   (inds,) = np.nonzero(label[:,0]==p)
-  x=np.arange(len(inds))
-  y=y_kmeans[inds]
+ #x=np.arange(len(inds))
+  y=model[inds]
   (yy, eff1) = np.unique(y, return_counts=True)
   j.append(eff1)
   jj.append(yy)
- liste=j+jj
+ #liste=j+jj
  T=np.zeros(shape=(nb_clust,nb_parti))
  for i in range(0,nb_parti):
     A=np.asarray(j[i])
@@ -136,18 +134,13 @@ def doAnalyse(y_kmeans,label,nb_clust,nb_parti):
  T=np.transpose(T)
  return(T,eff)
 #%% Nombre de clusters: changement de fréquence
-def FindClusFeq(ide,i):      
-  
-   R=[]
-   R1=[]
-   V=[]
-   V1=[]
+def FindClusFeq(ide,i,model,label,my_list,my_list1):      
    j=[];jj=[];x1=[];x2=[]
    for p in [ide]:
     
      (inds,) = np.nonzero(label[:,0]==p)
     
-     y=y_kmeans[inds]+1
+     y=model[inds]+1
      x1=my_list[i][:]
      x2=my_list1[i][1:]
      T=np.zeros(shape=(5,len(x1)))
@@ -165,7 +158,34 @@ def FindClusFeq(ide,i):
                      s=B[ii]
                      T[s-1,y]=A[ii]
           
-   return(np.transpose(T))         
+   return(np.transpose(T))        
+       #%% figure Intervalle de confiance PH par cluster Elbow example
+def plotPH(data,model,n_clusters,model_init):
+        
+        clusters = [data[model==i] for i in range(n_clusters)]
+    
+    
+        for i, c in enumerate(clusters):
+            clust=clusters[i]
+            clustPh=clust
+            MoyCol=model_init.cluster_centers_[i].ravel()
+            stdCol=np.std(clustPh, 0)
+            MoyP=MoyCol-stdCol
+            MoyM=MoyCol+stdCol
+            plt.figure()
+            plt.plot(MoyP,'--', label="Mean - std")
+            plt.plot(MoyM,'--', label="Mean + std")
+            #plt.plot(MoyCol, label="Mean")
+            plt.plot(MoyCol, "r-", label="Mean")
+            plt.legend()
+            plt.xlabel('Cycle Length')
+            plt.ylabel('Confidence Interval')
+            s1='Cluster '
+            s1+=str(i+1)
+           # s=' : NUmber of cycle is= '
+            my_file = 'IntervalleDTWEl{}.png'
+            outfile = os.path.abspath( './ProjetPythonPapier/Figures')
+            plt.savefig(os.path.join(outfile, my_file.format(i))) 
       #%%
 def sumColumn(matrix):
     R= np.sum(matrix, axis=0) 
@@ -175,4 +195,5 @@ def sumLig(matrix):
     return R
 #%% save model
 def saveModel(model,filename):
+    import pickle
     return (pickle.dump(model,open(filename,'wb')) )
