@@ -4,9 +4,9 @@
 Created on Mon Mar  4 17:27:13 2019
 """
 
-"""TV Kernel K-means"""
+"""Total Variation Kernel K-means"""
+authors: Imen trabelsi, Gilles Gasso, Romain Hérault
 
-_author__ = 'gilles[dot]gasso[at]insa-rouen[dot]fr'
 # Kernel k-means is derived from https://gist.github.com/mblondel/6230787 by Mathieu Blondel, under BSD 3 clause license
 # GKA is derived from https://tslearn.readthedocs.io/en/latest/_modules/tslearn/clustering.html by Romain Tavenard
 
