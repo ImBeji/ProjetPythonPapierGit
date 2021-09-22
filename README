@@ -1,1 +1,3 @@
-this is a git for Python Code
+this is a git for TV kernel K-means.
+Application on postural data from patients (test_clustering_cycles.py)
+Application on other different datasets (ComparaisonDATA.py)
